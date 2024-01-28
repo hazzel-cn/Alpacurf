@@ -4,14 +4,13 @@ from typing import List
 import requests
 from loguru import logger
 from pytube import YouTube
-from selenium.webdriver import Chrome, ChromeOptions
 
 from alpacurf.settings import YOUTUBE_API_KEY
 from libs.advisor import Advisor
 from libs.ai import (
     mp4_to_transcription,
     normalize_transcription,
-    draw_conclusion_with_transcription,
+    conclude_with_transcription,
 )
 from ytbadvisor.models import YouTubeVideo, YouTubeChannel, YouTubeAdvice
 
@@ -19,11 +18,6 @@ from ytbadvisor.models import YouTubeVideo, YouTubeChannel, YouTubeAdvice
 class YoutubeAdvisor(Advisor):
     def __init__(self):
         super().__init__()
-
-        options = ChromeOptions()
-        options.add_argument("--headless")
-        options.add_argument("--disable-gpu")
-        self.driver = Chrome(options=options)
 
     @staticmethod
     def _get_videos_from_channel(
@@ -78,7 +72,7 @@ class YoutubeAdvisor(Advisor):
 
             logger.debug(f"Summarizing the transcription: {v}")
             advice = YouTubeAdvice(
-                video=v, advice=draw_conclusion_with_transcription(v.transcription)
+                video=v, advice=conclude_with_transcription(v.transcription)
             )
             advice.save()
             logger.debug(advice.advice)

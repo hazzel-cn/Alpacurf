@@ -68,7 +68,7 @@ def normalize_transcription(transcription: str) -> str:
     return response.choices[0].message.content
 
 
-def draw_conclusion_with_transcription(transcription: str) -> str:
+def conclude_with_transcription(transcription: str) -> str:
     client = OpenAI(api_key=OPENAI_API_KEY)
 
     with open(os.path.join(BASE_DIR, "ytbadvisor", "prompts.yaml"), "r") as fp:
