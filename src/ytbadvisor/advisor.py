@@ -93,7 +93,7 @@ class YoutubeAdvisor(Advisor):
         audio.download(filename=tmp_audio_filename)
 
         logger.debug(f"Extracting transcription")
-        transcription = mp4_to_transcription("audio.mp4")
+        transcription = mp4_to_transcription(tmp_audio_filename)
         os.remove(tmp_audio_filename)
         logger.debug(f"Transcription extracted: {transcription}")
 
