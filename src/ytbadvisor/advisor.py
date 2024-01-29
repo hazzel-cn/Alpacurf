@@ -1,10 +1,10 @@
+import datetime
 import os
 from typing import List
 
 import requests
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.utils import timezone
 from django.utils.html import strip_tags
 from loguru import logger
 from pytube import YouTube
@@ -110,7 +110,7 @@ class YoutubeAdvisor(Advisor):
         subject = "[YouTube Advisor] Video Summary"
         analyses = []
         for adv in YouTubeAdvice.objects.filter(
-            video__publish_datetime__gte=timezone.now().date()
+            video__publish_datetime__gte=datetime.datetime.today().date()
         ):
             analyses.append(
                 {
