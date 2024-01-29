@@ -52,28 +52,11 @@ def mp4_to_transcription(
     return transcription
 
 
-def normalize_transcription(transcription: str) -> str:
-    client = OpenAI(api_key=OPENAI_API_KEY)
-
-    with open(os.path.join(BASE_DIR, "ytbadvisor", "prompts.yaml"), "r") as fp:
-        prompts = safe_load(fp)["zh-CN"]
-
-    response = client.chat.completions.create(
-        model="gpt-4-turbo-preview",
-        messages=[
-            {"role": "system", "content": prompts["transcription_normalization"]},
-            {"role": "user", "content": transcription},
-        ],
-        temperature=0,
-    )
-    return response.choices[0].message.content
-
-
 def conclude_with_transcription(transcription: str) -> str:
     client = OpenAI(api_key=OPENAI_API_KEY)
 
     with open(os.path.join(BASE_DIR, "ytbadvisor", "prompts.yaml"), "r") as fp:
-        prompts = safe_load(fp)["cn"]
+        prompts = safe_load(fp)["zh-CN"]
 
     response = client.chat.completions.create(
         model="gpt-4-turbo-preview",
