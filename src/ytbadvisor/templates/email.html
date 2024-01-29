@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            background-color: #007bff;
+            color: #ffffff;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .content-block {
+            border-bottom: 1px solid #eaeaea;
+            padding: 20px;
+            background-color: #f9f9f9;
+            padding-left: 40px;
+        }
+
+        .content-block h2 {
+            color: #333333;
+        }
+
+        .content-block a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        .content-block p {
+            color: #555555;
+        }
+
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            font-size: 12px;
+            color: #777;
+            background-color: #f2f2f2;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>股市分析报告</h1>
+    </div>
+    {% for analysis in analyses %}
+        <div class="content-block">
+            <h2>{{ analysis.time | date }}</h2>
+            <a href="{{ analysis.source_url }}">{{ analysis.source_title }}</a>
+            <p>{{ analysis.content }}</p>
+        </div>
+    {% endfor %}
+    <hr>
+    <div class="footer">
+        <p></p>
+    </div>
+</div>
+</body>
+</html>

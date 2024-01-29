@@ -1,11 +1,15 @@
+import datetime
 import os
 from typing import List
 
 import requests
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 from loguru import logger
 from pytube import YouTube
 
-from alpacurf.settings import YOUTUBE_API_KEY
+from alpacurf.settings import YOUTUBE_API_KEY, EMAIL_SUBSCRIBERS
 from libs.advisor import Advisor
 from libs.ai import (
     mp4_to_transcription,
@@ -101,4 +105,26 @@ class YoutubeAdvisor(Advisor):
 
     def advise(self):
         for channel in YouTubeChannel.objects.filter():
-            self._retrieve_video_data_to_db(channel, 1)
+            self._retrieve_video_data_to_db(channel, 2)
+
+        subject = "[YouTube Advisor] Video Summary"
+        analyses = []
+        for adv in YouTubeAdvice.objects.filter(
+            video__publish_datetime__gte=datetime.datetime.today().date()
+        ):
+            analyses.append(
+                {
+                    "time": adv.video.publish_datetime,
+                    "content": adv.advice,
+                    "source_url": adv.video.url,
+                    "source_title": adv.video.title,
+                }
+            )
+        html_content = render_to_string(
+            "email.html",
+            context={"analyses": analyses},
+        ).replace("\n", "<br>")
+        text_content = strip_tags(html_content)
+        email = EmailMultiAlternatives(subject, text_content, None, EMAIL_SUBSCRIBERS)
+        email.attach_alternative(html_content, "text/html")
+        email.send()
