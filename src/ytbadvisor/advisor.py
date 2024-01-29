@@ -9,7 +9,6 @@ from alpacurf.settings import YOUTUBE_API_KEY
 from libs.advisor import Advisor
 from libs.ai import (
     mp4_to_transcription,
-    normalize_transcription,
     conclude_with_transcription,
 )
 from ytbadvisor.models import YouTubeVideo, YouTubeChannel, YouTubeAdvice
@@ -89,18 +88,14 @@ class YoutubeAdvisor(Advisor):
         ytb = YouTube(video.url)
         audio = ytb.streams.get_audio_only("mp4")
 
+        tmp_audio_filename = "tmp_audio.mp4"
         logger.debug(f"Downloading audio")
-        audio.download(filename="audio.mp4")
+        audio.download(filename=tmp_audio_filename)
 
         logger.debug(f"Extracting transcription")
         transcription = mp4_to_transcription("audio.mp4")
-        os.remove("audio.mp4")
+        os.remove(tmp_audio_filename)
         logger.debug(f"Transcription extracted: {transcription}")
-
-        logger.debug(f"Normalizing transcription")
-        transcription = normalize_transcription(transcription)
-
-        logger.debug(f"Transcription normalized: {transcription}")
 
         return transcription
 
