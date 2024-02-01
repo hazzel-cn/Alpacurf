@@ -27,7 +27,7 @@ class YouTubeVideo(models.Model):
     transcription = models.TextField("Transcription")
 
     def __repr__(self):
-        return f"<YouTubeVideo '{self.title}'>"
+        return self.title
 
     def __str__(self):
         return self.__repr__()
@@ -40,6 +40,12 @@ class YouTubeVideo(models.Model):
 class YouTubeAdvice(models.Model):
     video = models.OneToOneField(YouTubeVideo, on_delete=models.CASCADE, unique=True)
     advice = models.TextField("Advice")
+
+    def __repr__(self):
+        return f'Advice for "{self.video.title}"'
+
+    def __str__(self):
+        return self.__repr__()
 
     class Meta:
         verbose_name = "YouTube Advice"

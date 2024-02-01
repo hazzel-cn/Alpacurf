@@ -5,6 +5,8 @@ from typing import List
 import requests
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.utils.html import strip_tags
 from loguru import logger
 from pytube import YouTube
@@ -22,9 +24,13 @@ class YoutubeAdvisor(Advisor):
     def __init__(self):
         super().__init__()
 
-    @staticmethod
+        logger.info(f"Advisor '{self.__class__.__name__}' initiated")
+
+    def __del__(self) -> None:
+        logger.info(f"Advisor '{self.__class__.__name__}' destructed")
+
     def _get_videos_from_channel(
-        channel: YouTubeChannel, max_results: int = 10
+        self, channel: YouTubeChannel, max_results: int = 10
     ) -> List[YouTubeVideo]:
         """
         Get video URLs and related objects from YouTube channel.
@@ -42,21 +48,26 @@ class YoutubeAdvisor(Advisor):
         for i in items:
             vid = i["id"]["videoId"]
             if YouTubeVideo.objects.filter(vid=vid).exists():
-                break
-            v = YouTubeVideo(
-                vid=vid,
-                url=f"https://www.youtube.com/watch?v={vid}",
-                title=i["snippet"]["title"],
-                description=i["snippet"]["description"],
-                channel=channel,
-                publish_datetime=i["snippet"]["publishedAt"],
-                transcription="",
-            )
+                v = YouTubeVideo.objects.get(vid=vid)
+            else:
+                v = YouTubeVideo(
+                    vid=vid,
+                    url=f"https://www.youtube.com/watch?v={vid}",
+                    title=i["snippet"]["title"],
+                    description=i["snippet"]["description"],
+                    channel=channel,
+                    publish_datetime=parse_datetime(i["snippet"]["publishedAt"]),
+                    transcription="",
+                )
+                logger.debug(f"New video found: {v.title}")
 
-            logger.debug(f"Found video {v}")
+                logger.debug(f"Getting transcription: {v}")
+                v.transcription = self._get_transcription(v)
+
+            logger.info(f"Collected video {v}")
             videos.append(v)
 
-        logger.info(f"Found new {len(videos)} videos: {videos}")
+        logger.info(f"Checking {len(videos)} videos: {videos}")
         return videos
 
     def _retrieve_video_data_to_db(self, channel: YouTubeChannel, max_results: int = 3):
@@ -67,10 +78,9 @@ class YoutubeAdvisor(Advisor):
         """
         videos = self._get_videos_from_channel(channel, max_results)
         for v in videos:
-            v.channel = channel
+            if YouTubeAdvice.objects.filter(video=v).exists():
+                continue
 
-            logger.info(f"Getting transcription: {v}")
-            v.transcription = self._get_transcription(v)
             v.save()
 
             logger.debug(f"Summarizing the transcription: {v}")
@@ -110,7 +120,7 @@ class YoutubeAdvisor(Advisor):
         subject = "[YouTube Advisor] Video Summary"
         analyses = []
         for adv in YouTubeAdvice.objects.filter(
-            video__publish_datetime__gte=datetime.datetime.today().date()
+            video__publish_datetime__gte=timezone.now() - datetime.timedelta(days=1)
         ):
             analyses.append(
                 {

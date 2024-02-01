@@ -10,7 +10,7 @@ class YouTubeChannelAdmin(admin.ModelAdmin):
 
 @admin.register(YouTubeVideo)
 class YouTubeVideoAdmin(admin.ModelAdmin):
-    list_display = ("url", "title")
+    list_display = ("title", "publish_datetime", "url")
 
 
 @admin.register(YouTubeAdvice)
