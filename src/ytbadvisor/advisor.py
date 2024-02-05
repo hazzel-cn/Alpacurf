@@ -46,6 +46,13 @@ class YoutubeAdvisor(Advisor):
         items = resp.json()["items"]
 
         for i in items:
+            logger.debug(f"Video info: {i}")
+
+            # Skip the item if it is a Live video
+            print()
+            if i["snippet"]["liveBroadcastContent"] == "live":
+                continue
+
             vid = i["id"]["videoId"]
             if YouTubeVideo.objects.filter(vid=vid).exists():
                 v = YouTubeVideo.objects.get(vid=vid)
@@ -59,9 +66,9 @@ class YoutubeAdvisor(Advisor):
                     publish_datetime=parse_datetime(i["snippet"]["publishedAt"]),
                     transcription="",
                 )
-                logger.debug(f"New video found: {v.title}")
+                logger.info(f"New video found: {v.title}")
 
-                logger.debug(f"Getting transcription: {v}")
+                logger.info(f"Getting transcription: {v}")
                 v.transcription = self._get_transcription(v)
 
             logger.info(f"Collected video {v}")
@@ -78,7 +85,7 @@ class YoutubeAdvisor(Advisor):
         """
         videos = self._get_videos_from_channel(channel, max_results)
         for v in videos:
-            if YouTubeAdvice.objects.filter(video=v).exists():
+            if YouTubeAdvice.objects.filter(video_id=v.id).exists():
                 continue
 
             v.save()
