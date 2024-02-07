@@ -110,10 +110,10 @@ class YoutubeAdvisor(Advisor):
         audio = ytb.streams.get_audio_only("mp4")
 
         tmp_audio_filename = "tmp_audio.mp4"
-        logger.debug(f"Downloading audio")
+        logger.info(f"Downloading audio: {video.title}")
         audio.download(filename=tmp_audio_filename)
 
-        logger.debug(f"Extracting transcription")
+        logger.info(f"Extracting transcription: {video.title}")
         transcription = mp4_to_transcription(tmp_audio_filename)
         os.remove(tmp_audio_filename)
         logger.debug(f"Transcription extracted: {transcription}")

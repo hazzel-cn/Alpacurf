@@ -9,31 +9,52 @@ from alpacurf.settings import OPENAI_API_KEY
 
 
 def mp4_to_transcription(
-    mp4_filepath: str, max_size_mb: int = 20, bitrate: str = "64k"
+    mp4_filepath: str, max_size_mb: int = 25, bitrate: str = "32k"
 ) -> str:
-    # Split the MP3 file
+    # Load the MP4 file
     audio = AudioSegment.from_file(mp4_filepath)
-    max_size_bytes = max_size_mb * 1000 * 1000
+
+    # Calculate the maximum size of each split part in bytes
+    max_size_bytes = max_size_mb * 1024 * 1024
+
+    # Initialize variables
     start = 0
     file_index = 1
-
     part_files = []
 
     while start < len(audio):
+        # Calculate the end position for the current segment
         end = start + max_size_bytes
+
         # Check if end is beyond audio length
         if end > len(audio):
             end = len(audio)
 
         # Extract segment
         segment = audio[start:end]
-        # Define output file path
-        output_file = f"part_{file_index}.mp3"
-        part_files.append(output_file)
+
         # Export segment to output file
-        segment.export(output_file, format="mp3", bitrate=bitrate)
-        # Update start point for next segment
+        output_file = f"part_{file_index}.mp4"
+        segment.export(output_file, format="mp4", bitrate=bitrate)
+
+        # Check the size of the exported file
+        output_file_size = os.path.getsize(output_file)
+
+        # Adjust segment size if needed
+        while output_file_size > max_size_bytes:
+            # Decrease segment size
+            segment = segment[:-1000]  # Remove 1000 ms (1 second) from the end
+            # Export the adjusted segment to the output file
+            segment.export(output_file, format="mp4", bitrate=bitrate)
+            # Update the size of the exported file
+            output_file_size = os.path.getsize(output_file)
+
+        # Add the output file to the list of part files
+        part_files.append(output_file)
+
+        # Update start position for the next segment
         start = end
+
         # Increment file index
         file_index += 1
 
