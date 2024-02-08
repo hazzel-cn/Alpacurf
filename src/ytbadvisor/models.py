@@ -41,6 +41,8 @@ class YouTubeAdvice(models.Model):
     video = models.OneToOneField(YouTubeVideo, on_delete=models.CASCADE, unique=True)
     advice = models.TextField("Advice")
 
+    notified = models.BooleanField("Notified", default=False)
+
     def __repr__(self):
         return f'Advice for "{self.video.title}"'
 

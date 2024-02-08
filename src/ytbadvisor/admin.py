@@ -15,4 +15,4 @@ class YouTubeVideoAdmin(admin.ModelAdmin):
 
 @admin.register(YouTubeAdvice)
 class YouTubeAdviceAdviceAdmin(admin.ModelAdmin):
-    list_display = ("video", "advice")
+    list_display = ("video", "advice", "notified")

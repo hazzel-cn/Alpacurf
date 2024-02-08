@@ -1,11 +1,9 @@
-import datetime
 import os
 from typing import List
 
 import requests
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from django.utils.html import strip_tags
 from loguru import logger
@@ -132,9 +130,8 @@ class YoutubeAdvisor(Advisor):
 
         subject = "[YouTube Advisor] Video Summary"
         analyses = []
-        for adv in YouTubeAdvice.objects.filter(
-            video__publish_datetime__gte=timezone.now() - datetime.timedelta(days=1)
-        ):
+        candidate_advices = YouTubeAdvice.objects.filter(notified=False)
+        for adv in candidate_advices:
             analyses.append(
                 {
                     "time": adv.video.publish_datetime,
@@ -143,6 +140,11 @@ class YoutubeAdvisor(Advisor):
                     "source_title": adv.video.title,
                 }
             )
+
+        logger.info(f"Advises to be sent: {len(analyses)}")
+        if analyses == 0:
+            return
+
         html_content = render_to_string(
             "email.html",
             context={"analyses": analyses},
@@ -151,3 +153,6 @@ class YoutubeAdvisor(Advisor):
         email = EmailMultiAlternatives(subject, text_content, None, EMAIL_SUBSCRIBERS)
         email.attach_alternative(html_content, "text/html")
         email.send()
+
+        # Update the `notified` flag in the database.
+        candidate_advices.update(notified=True)
