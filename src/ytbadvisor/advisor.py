@@ -126,7 +126,7 @@ class YoutubeAdvisor(Advisor):
 
     def advise(self):
         for channel in YouTubeChannel.objects.filter():
-            self._summarize_new_videos(channel, 2)
+            self._summarize_new_videos(channel, 3)
 
         subject = "[YouTube Advisor] Video Summary"
         analyses = []
