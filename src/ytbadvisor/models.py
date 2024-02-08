@@ -27,7 +27,7 @@ class YouTubeVideo(models.Model):
     transcription = models.TextField("Transcription")
 
     def __repr__(self):
-        return self.title
+        return f"{self.title} - {self.channel.name}"
 
     def __str__(self):
         return self.__repr__()

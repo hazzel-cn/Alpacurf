@@ -29,7 +29,7 @@ class YoutubeAdvisor(Advisor):
     def __del__(self) -> None:
         logger.info(f"Advisor '{self.__class__.__name__}' destructed")
 
-    def _get_videos_from_channel(
+    def _find_new_videos(
         self, channel: YouTubeChannel, max_results: int = 10
     ) -> List[YouTubeVideo]:
         """
@@ -55,8 +55,14 @@ class YoutubeAdvisor(Advisor):
 
             vid = i["id"]["videoId"]
             if YouTubeVideo.objects.filter(vid=vid).exists():
+                # Collect videos without transcription
                 v = YouTubeVideo.objects.get(vid=vid)
+                if not v.transcription:
+                    logger.info(f"Existing video: {v}")
+                    videos.append(v)
+
             else:
+                # New videos
                 v = YouTubeVideo(
                     vid=vid,
                     url=f"https://www.youtube.com/watch?v={vid}",
@@ -66,24 +72,24 @@ class YoutubeAdvisor(Advisor):
                     publish_datetime=parse_datetime(i["snippet"]["publishedAt"]),
                     transcription="",
                 )
-                logger.info(f"New video found: {v.title}")
+                logger.info(f"New video: {v.title}")
+                videos.append(v)
 
-                logger.info(f"Getting transcription: {v}")
-                v.transcription = self._get_transcription(v)
-
-            logger.info(f"Collected video {v}")
-            videos.append(v)
+        for v in videos:
+            logger.info(f"Transcribe: {v.title}")
+            v.transcription = self._get_transcription(v)
+            v.save()
 
         logger.info(f"Checking {len(videos)} videos: {videos}")
         return videos
 
-    def _retrieve_video_data_to_db(self, channel: YouTubeChannel, max_results: int = 3):
+    def _summarize_new_videos(self, channel: YouTubeChannel, max_results: int = 3):
         """
         To retrieve videos, get transcriptions, and save them in the database.
         :param channel: Specify the channel
         :return:
         """
-        videos = self._get_videos_from_channel(channel, max_results)
+        videos = self._find_new_videos(channel, max_results)
         for v in videos:
             if YouTubeAdvice.objects.filter(video_id=v.id).exists():
                 continue
@@ -114,9 +120,7 @@ class YoutubeAdvisor(Advisor):
         audio.download(filename=tmp_audio_filename)
 
         logger.info(f"Extracting transcription: {video.title}")
-        transcription = mp4_to_transcription(
-            tmp_audio_filename, 25, 64
-        )
+        transcription = mp4_to_transcription(tmp_audio_filename, 25, 64)
         os.remove(tmp_audio_filename)
         logger.debug(f"Transcription extracted: {transcription}")
 
@@ -124,7 +128,7 @@ class YoutubeAdvisor(Advisor):
 
     def advise(self):
         for channel in YouTubeChannel.objects.filter():
-            self._retrieve_video_data_to_db(channel, 2)
+            self._summarize_new_videos(channel, 2)
 
         subject = "[YouTube Advisor] Video Summary"
         analyses = []
