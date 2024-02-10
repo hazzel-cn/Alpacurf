@@ -1,83 +1,67 @@
+import math
 import os
+import shutil
 
+import ffmpeg
 from loguru import logger
 from openai import OpenAI
-from pydub import AudioSegment
 from yaml import safe_load
 
 from alpacurf.settings import BASE_DIR
 from alpacurf.settings import OPENAI_API_KEY
 
 
+def split_mp4(input_file, output_dir, target_size_mb=25):
+    # Create output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Get input file duration
+    probe = ffmpeg.probe(input_file)
+    duration = float(probe["format"]["duration"])
+
+    # Calculate total file size in bytes
+    total_file_size_bytes = os.path.getsize(input_file)
+
+    # Calculate number of segments required to get close to target size
+    target_size_bytes = target_size_mb * 1024 * 1024
+    num_segments = math.ceil(total_file_size_bytes / target_size_bytes)
+
+    # Calculate segment duration
+    segment_duration = duration / num_segments
+
+    # Split the input file into segments
+    for i in range(num_segments):
+        start_time = i * segment_duration
+        end_time = min((i + 1) * segment_duration, duration)
+        output_file = os.path.join(output_dir, f"{i+1}.mp4")
+        ffmpeg.input(input_file, ss=start_time, to=end_time).output(
+            output_file, f="mp4", vcodec="copy", acodec="copy"
+        ).run(overwrite_output=True)
+
+
 def mp4_to_transcription(
     mp4_filepath: str, max_size_mb: int = 25, bitrate_k: int = 64
 ) -> str:
-    logger.info(f"Converting {mp4_filepath} with bitrate of {bitrate_k}K")
+    logger.info(f"Converting {mp4_filepath} to transcription")
 
-    # Load the MP4 file
-    audio = AudioSegment.from_file(mp4_filepath)
-
-    # Calculate the maximum size of each split part in bytes
-    max_size_bytes = max_size_mb * 1024 * 1024
-
-    # Initialize variables
-    start = 0
-    file_index = 1
     part_files = []
 
-    while start < len(audio):
-        # Calculate the end position for the current segment
-        end = start + max_size_bytes
+    split_mp4_folder = BASE_DIR / ".mp4"
+    shutil.rmtree(split_mp4_folder, ignore_errors=True)
+    split_mp4(mp4_filepath, split_mp4_folder)
+    sub_indexes = [i.split(".")[0] for i in os.listdir(split_mp4_folder)]
+    sub_indexes.sort()
 
-        # Check if end is beyond audio length
-        if end > len(audio):
-            end = len(audio)
-
-        # Extract segment
-        segment = audio[start:end]
-
-        # Export segment to output file
-        output_file = f"part_{file_index}.mp4"
-        temp_output_file = f"temp_{output_file}"
-        segment.export(temp_output_file, format="mp4")
-
-        # Check the size of the exported file
-        output_file_size = os.path.getsize(temp_output_file)
-        logger.debug(
-            f"File {output_file} size {int(output_file_size / 1024 / 1024)} MB"
-        )
-
-        # Adjust segment size if needed
-        while output_file_size > max_size_bytes:
-            # Decrease segment size
-            segment = segment[:-60000]  # Remove 60000 ms (60 second) from the end
-            # Export the adjusted segment to the output file
-            segment.export(temp_output_file, format="mp4", bitrate=f"{bitrate_k}k")
-            # Update the size of the exported file
-            output_file_size = os.path.getsize(temp_output_file)
-
-            logger.debug(
-                f"File {output_file} size {int(output_file_size / 1024 / 1024)} MB"
-            )
-
-        # Rename temp file to final file name
-        os.rename(temp_output_file, output_file)
-
-        # Add the output file to the list of part files
-        part_files.append(output_file)
-
-        # Update start position for the next segment
-        start = end
-
-        # Increment file index
-        file_index += 1
+    for i in sub_indexes:
+        output_filepath = os.path.join(split_mp4_folder, f"{i}.mp4")
+        logger.debug(f"ffmpeg processing {output_filepath} to transcription")
+        part_files.append(output_filepath)
 
     # Call OpenAI API to identify it.
-    logger.debug("Calling OpenAI API to transcribe")
-
     client = OpenAI(api_key=OPENAI_API_KEY)
     transcription = ""
     for output_file in part_files:
+        logger.debug(f"AI processing {output_file}")
         transcription += client.audio.transcriptions.create(
             model="whisper-1", file=open(output_file, "rb"), response_format="text"
         )
