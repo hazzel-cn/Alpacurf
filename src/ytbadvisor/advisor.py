@@ -22,6 +22,7 @@ class YoutubeAdvisor(Advisor):
     def __init__(self):
         super().__init__()
 
+        logger.add("advisor.log", rotation="50 MB")
         logger.info(f"Advisor '{self.__class__.__name__}' initiated")
 
     def __del__(self) -> None:
