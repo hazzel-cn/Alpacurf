@@ -35,7 +35,7 @@ def split_mp4(input_file, output_dir, target_size_mb=25):
         end_time = min((i + 1) * segment_duration, duration)
         output_file = os.path.join(output_dir, f"{i+1}.mp4")
         ffmpeg.input(input_file, ss=start_time, to=end_time).output(
-            output_file, f="mp4", vcodec="copy", acodec="copy"
+            output_file, f="mp4", vcodec="copy", acodec="copy", loglevel="quiet"
         ).run(overwrite_output=True)
 
 
@@ -49,7 +49,7 @@ def mp4_to_transcription(
     split_mp4_folder = BASE_DIR / ".mp4"
     shutil.rmtree(split_mp4_folder, ignore_errors=True)
     split_mp4(mp4_filepath, split_mp4_folder)
-    sub_indexes = [i.split(".")[0] for i in os.listdir(split_mp4_folder)]
+    sub_indexes = [int(i.split(".")[0]) for i in os.listdir(split_mp4_folder)]
     sub_indexes.sort()
 
     for i in sub_indexes:
