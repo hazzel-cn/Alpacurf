@@ -142,7 +142,7 @@ class YoutubeAdvisor(Advisor):
             )
 
         logger.info(f"Advises to be sent: {len(analyses)}")
-        if analyses == 0:
+        if len(analyses) == 0:
             return
 
         html_content = render_to_string(
